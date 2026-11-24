@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
+  image,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -21,7 +22,7 @@ import { Ionicons } from "@expo/vector-icons";
 // ===================================
 
 const WHATSAPP_NUMBERS = {
-  "Karang Emas": "628xxxxxxxxxx",
+  "Karang Emas": "6287715780938",
   "Subur Jaya Santan": "6287715780938",
 };
 
@@ -32,51 +33,35 @@ const WHATSAPP_NUMBERS = {
 const PRODUCTS = [
   {
     id: "1",
-    name: "Beras Premium 5 Kg",
+    name: "Ikan Segar 1 Kg",
     brand: "Karang Emas",
-    category: "Sembako",
+    category: "Pangan Laut",
     price: 75000,
-    description: "Beras pilihan untuk kebutuhan sehari-hari.",
+    description: "Ikan segar berkualitas untuk kebutuhan memasak.",
   },
   {
     id: "2",
-    name: "Minyak Goreng 1 Liter",
+    name: "Amplang 250 gr",
     brand: "Karang Emas",
-    category: "Sembako",
-    price: 18000,
-    description: "Minyak goreng untuk kebutuhan memasak.",
+    category: "Cemilan",
+    price: 30000,
+    description: "Amplang berkualitas untuk dinikmati.",
   },
   {
     id: "3",
-    name: "Gula Pasir 1 Kg",
+    name: "Amplang 500 gr",
     brand: "Karang Emas",
-    category: "Sembako",
-    price: 18000,
-    description: "Gula pasir untuk kebutuhan rumah tangga.",
+    category: "Cemilan",
+    price: 50000,
+    description: "Amplang berkualitas untuk dinikmati.",
   },
   {
     id: "4",
-    name: "Tepung Terigu 1 Kg",
+    name: "Amplang 1 Kg",
     brand: "Karang Emas",
-    category: "Sembako",
-    price: 13000,
-    description: "Tepung terigu untuk berbagai olahan makanan.",
-  },
-  {
-    id: "5",
-    name: "Mi Instan",
-    brand: "Karang Emas",
-    category: "Makanan",
-    price: 3500,
-    description: "Mi instan untuk kebutuhan sehari-hari.",
-  },
-  {
-    id: "6",
-    name: "Telur Ayam 1 Kg",
-    brand: "Karang Emas",
-    category: "Sembako",
-    price: 30000,
-    description: "Telur ayam untuk kebutuhan memasak.",
+    category: "Cemilan",
+    price: 100000,
+    description: "Amplang berkualitas untuk dinikmati.",
   },
   {
     id: "7",
@@ -401,31 +386,43 @@ export default function App() {
         </Text>
       </View>
 
-      <View style={styles.shopContainer}>
-        <TouchableOpacity
-          style={styles.shopCard}
-          onPress={() => {
-            setSelectedBrand("Karang Emas");
-            setActiveTab("Produk");
-          }}
-        >
-          <Ionicons name="storefront" size={30} color="#7561C9" />
-          <Text style={styles.shopTitle}>Karang Emas</Text>
-          <Text style={styles.shopSubtitle}>Lihat produk</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.shopCard}
-          onPress={() => {
-            setSelectedBrand("Subur Jaya Santan");
-            setActiveTab("Produk");
-          }}
-        >
-          <Ionicons name="basket" size={30} color="#7561C9" />
-          <Text style={styles.shopTitle}>Subur Jaya Santan</Text>
-          <Text style={styles.shopSubtitle}>Lihat produk</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.shopContainer}>
+      <TouchableOpacity
+        style={styles.shopCard}
+        onPress={() => {
+          setSelectedBrand("Karang Emas");
+          setActiveTab("Produk");
+        }}
+      >
+        <Image
+          source={require("./assets/mitra/kerang-emas.png")}
+          style={styles.mitraLogo}
+          resizeMode="contain"
+        />
+        <Text style={styles.shopTitle}>Kerang Emas</Text>
+        <Text style={styles.shopSubtitle}>Kelompok Nelayan</Text>
+        <Text style={styles.shopSubtitle}>Lihat produk</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.shopCard}
+        onPress={() => {
+          setSelectedBrand("Subur Jaya Santan");
+          setActiveTab("Produk");
+        }}
+      >
+        <Image
+          source={require("./assets/mitra/subur-jaya.png")}
+          style={styles.mitraLogo}
+          resizeMode="contain"
+        />
+        <Text style={styles.shopTitle}>Subur Jaya</Text>
+        <Text style={styles.shopSubtitle}>Kelompok Tani</Text>
+        <Text style={styles.shopSubtitle}>Lihat produk</Text>
+      </TouchableOpacity>
+    </View>
+
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
@@ -648,7 +645,7 @@ export default function App() {
             SELAMAT DATANG DI
           </Text>
           <Text style={styles.headerTitle}>
-            Karang Emas & Subur Jaya
+            KosaBangsa
           </Text>
         </View>
 
@@ -1347,4 +1344,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 8,
   },
+
+  mitraLogo: {
+    width: "100%",
+    height: 115,
+    marginBottom: 8,
+  },
+
 });
