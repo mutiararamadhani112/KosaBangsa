@@ -28,9 +28,35 @@ const WHATSAPP_NUMBERS = {
 };
 
 // ===================================
-// 2. DATA PRODUK
+// 2. TEMA WARNA MITRA
 // ===================================
 
+const BRAND_THEME = {
+  "Karang Emas": {
+    primary: "#075985",
+    secondary: "#0891B2",
+    light: "#E0F2FE",
+    accent: "#D9A441",
+  },
+  "Subur Jaya Santan": {
+    primary: "#166534",
+    secondary: "#65A30D",
+    light: "#DCFCE7",
+    accent: "#A3C95A",
+  },
+};
+
+const getBrandColor = (brand) =>
+  BRAND_THEME[brand] || {
+    primary: "#0F5964",
+    secondary: "#16816D",
+    light: "#E5F3EF",
+    accent: "#D9A441",
+  };
+
+// ===================================
+// 3. DATA PRODUK
+// ===================================
 
 const PRODUCTS = [
   {
@@ -131,7 +157,7 @@ const formatRupiah = (number) =>
   "Rp" + Number(number || 0).toLocaleString("id-ID");
 
 // ===================================
-// 3. KOMPONEN UTAMA
+// 4. KOMPONEN UTAMA
 // ===================================
 
 export default function App() {
@@ -147,24 +173,18 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("Beranda");
   const [selectedBrand, setSelectedBrand] = useState("Semua");
   const [search, setSearch] = useState("");
-
-  // Keranjang menggunakan ID produk sebagai kunci
   const [cart, setCart] = useState({});
-
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [checkoutVisible, setCheckoutVisible] = useState(false);
 
-  // Data pelanggan
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerNote, setCustomerNote] = useState("");
-
-  // Menandai toko yang WhatsApp-nya sudah dibuka
   const [openedBrands, setOpenedBrands] = useState({});
 
   // ===================================
-  // 4. FILTER PRODUK
+  // 5. FILTER PRODUK
   // ===================================
 
   const filteredProducts = useMemo(() => {
@@ -182,7 +202,7 @@ export default function App() {
   }, [search, selectedBrand]);
 
   // ===================================
-  // 5. SISTEM KERANJANG
+  // 6. SISTEM KERANJANG
   // ===================================
 
   const addToCart = (product) => {
@@ -214,7 +234,6 @@ export default function App() {
     });
   };
 
-  // Data keranjang lengkap
   const cartItems = PRODUCTS
     .filter((product) => cart[product.id] > 0)
     .map((product) => ({
@@ -222,13 +241,11 @@ export default function App() {
       quantity: cart[product.id],
     }));
 
-  // Total seluruh produk
   const totalItems = Object.values(cart).reduce(
     (total, quantity) => total + quantity,
     0
   );
 
-  // Total harga
   const totalPrice = cartItems.reduce(
     (total, product) =>
       total + product.price * product.quantity,
@@ -236,14 +253,13 @@ export default function App() {
   );
 
   // ===================================
-  // 6. KELOMPOK PESANAN PER MITRA
+  // 7. KELOMPOK PESANAN PER MITRA
   // ===================================
 
   const groupedOrders = {
     "Karang Emas": cartItems.filter(
       (item) => item.brand === "Karang Emas"
     ),
-
     "Subur Jaya Santan": cartItems.filter(
       (item) => item.brand === "Subur Jaya Santan"
     ),
@@ -254,7 +270,7 @@ export default function App() {
   );
 
   // ===================================
-  // 7. KIRIM PESANAN WHATSAPP
+  // 8. KIRIM PESANAN WHATSAPP
   // ===================================
 
   const sendWhatsAppOrder = async (brand) => {
@@ -273,10 +289,7 @@ export default function App() {
     const items = groupedOrders[brand];
 
     if (!items || items.length === 0) {
-      Alert.alert(
-        "Informasi",
-        "Tidak ada produk dari toko ini."
-      );
+      Alert.alert("Informasi", "Tidak ada produk dari toko ini.");
       return;
     }
 
@@ -340,7 +353,7 @@ export default function App() {
   };
 
   // ===================================
-  // 8. SELESAIKAN PESANAN
+  // 9. SELESAIKAN PESANAN
   // ===================================
 
   const finishOrder = () => {
@@ -370,7 +383,6 @@ export default function App() {
             setCart({});
             setCheckoutVisible(false);
             setOpenedBrands({});
-
             setCustomerName("");
             setCustomerPhone("");
             setCustomerAddress("");
@@ -387,76 +399,106 @@ export default function App() {
   };
 
   // ===================================
-  // 9. TOMBOL FILTER MITRA
+  // 10. TOMBOL FILTER MITRA
   // ===================================
 
-  const BrandButton = ({ title }) => (
-    <TouchableOpacity
-      style={[
-        styles.filterButton,
-        selectedBrand === title && styles.filterActive,
-      ]}
-      onPress={() => setSelectedBrand(title)}
-    >
-      <Text
+  const BrandButton = ({ title }) => {
+    const color =
+      title === "Karang Emas"
+        ? BRAND_THEME["Karang Emas"].primary
+        : title === "Subur Jaya Santan"
+        ? BRAND_THEME["Subur Jaya Santan"].primary
+        : "#0F5964";
+
+    const active = selectedBrand === title;
+
+    return (
+      <TouchableOpacity
         style={[
-          styles.filterText,
-          selectedBrand === title && styles.filterTextActive,
+          styles.filterButton,
+          active && {
+            backgroundColor: color,
+            borderColor: color,
+          },
         ]}
+        onPress={() => setSelectedBrand(title)}
       >
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text
+          style={[
+            styles.filterText,
+            active && styles.filterTextActive,
+          ]}
+        >
+          {title}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   // ===================================
-  // 10. KARTU PRODUK
+  // 11. KARTU PRODUK
   // ===================================
 
+  const ProductCard = ({ product }) => {
+    const brandColor = getBrandColor(product.brand);
 
-const ProductCard = ({ product }) => (
-  <TouchableOpacity
-    style={[
-      styles.productCard,
-      { width: productCardWidth },
-    ]}
-    onPress={() => setSelectedProduct(product)}
-    activeOpacity={0.85}
-  >
-    <View style={styles.productImage}>
-      <Image
-        source={product.image}
-        style={styles.productPhoto}
-        resizeMode="contain"
-      />
-    </View>
+    return (
+      <TouchableOpacity
+        style={[
+          styles.productCard,
+          { width: productCardWidth },
+        ]}
+        onPress={() => setSelectedProduct(product)}
+        activeOpacity={0.85}
+      >
+        <View style={styles.productImage}>
+          <Image
+            source={product.image}
+            style={styles.productPhoto}
+            resizeMode="contain"
+          />
+        </View>
 
-    <Text style={styles.brandLabel}>
-      {product.brand}
-    </Text>
+        <Text
+          style={[
+            styles.brandLabel,
+            { color: brandColor.primary },
+          ]}
+        >
+          {product.brand}
+        </Text>
 
-    <Text style={styles.productName}>
-      {product.name}
-    </Text>
+        <Text style={styles.productName}>
+          {product.name}
+        </Text>
 
-    <Text style={styles.productPrice}>
-      {formatRupiah(product.price)}
-    </Text>
+        <Text
+          style={[
+            styles.productPrice,
+            { color: brandColor.primary },
+          ]}
+        >
+          {formatRupiah(product.price)}
+        </Text>
 
-    <TouchableOpacity
-      style={styles.addButton}
-      onPress={() => addToCart(product)}
-    >
-      <Ionicons name="add" size={18} color="#FFFFFF" />
-      <Text style={styles.addButtonText}>
-        Keranjang
-      </Text>
-    </TouchableOpacity>
-  </TouchableOpacity>
-);
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            { backgroundColor: brandColor.primary },
+          ]}
+          onPress={() => addToCart(product)}
+        >
+          <Ionicons name="add" size={18} color="#FFFFFF" />
+          <Text style={styles.addButtonText}>
+            Keranjang
+          </Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
 
   // ===================================
-  // 11. HALAMAN BERANDA
+  // 12. HALAMAN BERANDA
   // ===================================
 
   const renderHome = () => (
@@ -465,7 +507,7 @@ const ProductCard = ({ product }) => (
       contentContainerStyle={styles.homeContent}
     >
       <LinearGradient
-        colors={["#6652B5", "#9583E0", "#B4A5EF"]}
+        colors={["#075985", "#0F766E", "#166534"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.banner}
@@ -494,7 +536,7 @@ const ProductCard = ({ product }) => (
             <Ionicons
               name="arrow-forward"
               size={17}
-              color="#6652B5"
+              color="#075985"
             />
           </TouchableOpacity>
         </View>
@@ -507,8 +549,6 @@ const ProductCard = ({ product }) => (
           />
         </View>
       </LinearGradient>
-
-      {/* MITRA PILIHAN */}
 
       <View style={styles.sectionHeader}>
         <View>
@@ -523,13 +563,21 @@ const ProductCard = ({ product }) => (
 
       <View style={styles.shopContainer}>
         <TouchableOpacity
-          style={styles.shopCard}
+          style={[
+            styles.shopCard,
+            { borderColor: "#0891B2" },
+          ]}
           onPress={() => {
             setSelectedBrand("Karang Emas");
             setActiveTab("Produk");
           }}
         >
-          <View style={styles.logoContainer}>
+          <View
+            style={[
+              styles.logoContainer,
+              { backgroundColor: "#E0F2FE" },
+            ]}
+          >
             <Image
               source={require("./assets/mitra/karang-emas.jpeg")}
               style={styles.mitraLogo}
@@ -546,25 +594,38 @@ const ProductCard = ({ product }) => (
           </Text>
 
           <View style={styles.shopLink}>
-            <Text style={styles.shopLinkText}>
+            <Text
+              style={[
+                styles.shopLinkText,
+                { color: "#075985" },
+              ]}
+            >
               Lihat Produk
             </Text>
             <Ionicons
               name="arrow-forward"
               size={13}
-              color="#7561C9"
+              color="#075985"
             />
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.shopCard}
+          style={[
+            styles.shopCard,
+            { borderColor: "#65A30D" },
+          ]}
           onPress={() => {
             setSelectedBrand("Subur Jaya Santan");
             setActiveTab("Produk");
           }}
         >
-          <View style={styles.logoContainer}>
+          <View
+            style={[
+              styles.logoContainer,
+              { backgroundColor: "#DCFCE7" },
+            ]}
+          >
             <Image
               source={require("./assets/mitra/subur-jaya.jpeg")}
               style={styles.mitraLogo}
@@ -581,19 +642,22 @@ const ProductCard = ({ product }) => (
           </Text>
 
           <View style={styles.shopLink}>
-            <Text style={styles.shopLinkText}>
+            <Text
+              style={[
+                styles.shopLinkText,
+                { color: "#166534" },
+              ]}
+            >
               Lihat Produk
             </Text>
             <Ionicons
               name="arrow-forward"
               size={13}
-              color="#7561C9"
+              color="#166534"
             />
           </View>
         </TouchableOpacity>
       </View>
-
-      {/* PRODUK PILIHAN */}
 
       <View style={styles.sectionHeader}>
         <View>
@@ -626,120 +690,107 @@ const ProductCard = ({ product }) => (
   );
 
   // ===================================
-  // 12. HALAMAN PRODUK
+  // 13. HALAMAN PRODUK
   // ===================================
 
+  const renderProducts = () => (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.productsContent}
+      showsVerticalScrollIndicator={true}
+      nestedScrollEnabled={true}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={styles.pageTitle}>
+        Katalog Produk
+      </Text>
 
-
-
-const renderProducts = () => (
-  <ScrollView
-    style={{ flex: 1 }}
-    contentContainerStyle={{
-      padding: 17,
-      paddingBottom: 35,
-      flexGrow: 1,
-    }}
-    showsVerticalScrollIndicator={true}
-    nestedScrollEnabled={true}
-    keyboardShouldPersistTaps="handled"
-  >
-    {/* JUDUL */}
-    <Text style={styles.pageTitle}>
-      Katalog Produk
-    </Text>
-
-    {/* PENCARIAN */}
-    <View style={styles.searchWrapper}>
-      <Ionicons
-        name="search-outline"
-        size={20}
-        color="#918BA3"
-      />
-
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Cari produk..."
-        placeholderTextColor="#9993A8"
-        value={search}
-        onChangeText={setSearch}
-      />
-
-      {search.length > 0 && (
-        <TouchableOpacity onPress={() => setSearch("")}>
-          <Ionicons
-            name="close-circle"
-            size={19}
-            color="#9993A8"
-          />
-        </TouchableOpacity>
-      )}
-    </View>
-
-    {/* FILTER MITRA */}
-    <View style={styles.filterContainer}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        nestedScrollEnabled={true}
-        directionalLockEnabled={true}
-        keyboardShouldPersistTaps="handled"
-      >
-        <BrandButton title="Semua" />
-        <BrandButton title="Karang Emas" />
-        <BrandButton title="Subur Jaya Santan" />
-      </ScrollView>
-    </View>
-
-    {/* JUMLAH PRODUK */}
-    <Text style={styles.resultText}>
-      Menampilkan {filteredProducts.length} produk
-    </Text>
-
-    {/* DAFTAR PRODUK */}
-    {filteredProducts.length > 0 ? (
-      <View style={styles.productGrid}>
-        {filteredProducts.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-          />
-        ))}
-      </View>
-    ) : (
-      <View style={styles.emptyCart}>
+      <View style={styles.searchWrapper}>
         <Ionicons
           name="search-outline"
-          size={55}
-          color="#B8B1D0"
+          size={20}
+          color="#82939A"
         />
 
-        <Text style={styles.emptyTitle}>
-          Produk tidak ditemukan
-        </Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Cari produk..."
+          placeholderTextColor="#9993A8"
+          value={search}
+          onChangeText={setSearch}
+        />
 
-        <Text style={styles.emptyText}>
-          Coba gunakan kata kunci atau filter mitra lainnya.
-        </Text>
-
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => {
-            setSearch("");
-            setSelectedBrand("Semua");
-          }}
-        >
-          <Text style={styles.primaryButtonText}>
-            Tampilkan Semua Produk
-          </Text>
-        </TouchableOpacity>
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch("")}>
+            <Ionicons
+              name="close-circle"
+              size={19}
+              color="#9993A8"
+            />
+          </TouchableOpacity>
+        )}
       </View>
-    )}
-  </ScrollView>
-);
+
+      <View style={styles.filterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+        >
+          <BrandButton title="Semua" />
+          <BrandButton title="Karang Emas" />
+          <BrandButton title="Subur Jaya Santan" />
+        </ScrollView>
+      </View>
+
+      <Text style={styles.resultText}>
+        Menampilkan {filteredProducts.length} produk
+      </Text>
+
+      {filteredProducts.length > 0 ? (
+        <View style={styles.productGrid}>
+          {filteredProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+            />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyCart}>
+          <Ionicons
+            name="search-outline"
+            size={55}
+            color="#A8B9B3"
+          />
+
+          <Text style={styles.emptyTitle}>
+            Produk tidak ditemukan
+          </Text>
+
+          <Text style={styles.emptyText}>
+            Coba gunakan kata kunci atau filter mitra lainnya.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => {
+              setSearch("");
+              setSelectedBrand("Semua");
+            }}
+          >
+            <Text style={styles.primaryButtonText}>
+              Tampilkan Semua Produk
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
+  );
 
   // ===================================
-  // 13. HALAMAN KERANJANG
+  // 14. HALAMAN KERANJANG
   // ===================================
 
   const renderCart = () => (
@@ -756,7 +807,7 @@ const renderProducts = () => (
           <Ionicons
             name="cart-outline"
             size={64}
-            color="#B8B1D0"
+            color="#A8B9B3"
           />
 
           <Text style={styles.emptyTitle}>
@@ -778,75 +829,93 @@ const renderProducts = () => (
         </View>
       ) : (
         <>
-          {cartItems.map((product) => (
-            <View
-              key={product.id}
-              style={styles.cartCard}
-            >
-              
+          {cartItems.map((product) => {
+            const brandColor = getBrandColor(product.brand);
 
-            <View style={styles.cartImage}>
-              <Image
-                source={product.image}
-                style={styles.cartPhoto}
-                resizeMode="contain"
-              />
-            </View>
+            return (
+              <View
+                key={product.id}
+                style={styles.cartCard}
+              >
+                <View style={styles.cartImage}>
+                  <Image
+                    source={product.image}
+                    style={styles.cartPhoto}
+                    resizeMode="contain"
+                  />
+                </View>
 
-              <View style={styles.cartInfo}>
-                <Text style={styles.brandLabel}>
-                  {product.brand}
-                </Text>
-
-                <Text style={styles.cartName}>
-                  {product.name}
-                </Text>
-
-                <Text style={styles.productPrice}>
-                  {formatRupiah(product.price)}
-                </Text>
-
-                <View style={styles.quantityContainer}>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() => decreaseCart(product.id)}
+                <View style={styles.cartInfo}>
+                  <Text
+                    style={[
+                      styles.brandLabel,
+                      { color: brandColor.primary },
+                    ]}
                   >
-                    <Ionicons
-                      name="remove"
-                      size={18}
-                      color="#7561C9"
-                    />
-                  </TouchableOpacity>
-
-                  <Text style={styles.quantityText}>
-                    {product.quantity}
+                    {product.brand}
                   </Text>
 
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() => addToCart(product)}
-                  >
-                    <Ionicons
-                      name="add"
-                      size={18}
-                      color="#7561C9"
-                    />
-                  </TouchableOpacity>
+                  <Text style={styles.cartName}>
+                    {product.name}
+                  </Text>
 
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() => removeFromCart(product.id)}
+                  <Text
+                    style={[
+                      styles.productPrice,
+                      { color: brandColor.primary },
+                    ]}
                   >
-                    <Ionicons
-                      name="trash-outline"
-                      size={17}
-                      color="#D9534F"
-                    />
-                  </TouchableOpacity>
+                    {formatRupiah(product.price)}
+                  </Text>
+
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.quantityButton,
+                        { backgroundColor: brandColor.light },
+                      ]}
+                      onPress={() => decreaseCart(product.id)}
+                    >
+                      <Ionicons
+                        name="remove"
+                        size={18}
+                        color={brandColor.primary}
+                      />
+                    </TouchableOpacity>
+
+                    <Text style={styles.quantityText}>
+                      {product.quantity}
+                    </Text>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.quantityButton,
+                        { backgroundColor: brandColor.light },
+                      ]}
+                      onPress={() => addToCart(product)}
+                    >
+                      <Ionicons
+                        name="add"
+                        size={18}
+                        color={brandColor.primary}
+                      />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.quantityButton}
+                      onPress={() => removeFromCart(product.id)}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={17}
+                        color="#D9534F"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
 
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>
@@ -883,7 +952,7 @@ const renderProducts = () => (
   );
 
   // ===================================
-  // 14. HALAMAN TENTANG
+  // 15. HALAMAN TENTANG
   // ===================================
 
   const renderAbout = () => (
@@ -896,7 +965,7 @@ const renderProducts = () => (
           <Ionicons
             name="storefront"
             size={50}
-            color="#7561C9"
+            color="#0F5964"
           />
         </View>
 
@@ -932,20 +1001,25 @@ const renderProducts = () => (
   );
 
   // ===================================
-  // 15. TAMPILAN UTAMA
+  // 16. TAMPILAN UTAMA
   // ===================================
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <StatusBar
-          backgroundColor="#7561C9"
+          backgroundColor="#075985"
           barStyle="light-content"
         />
 
         {/* HEADER */}
 
-        <View style={styles.topHeader}>
+        <LinearGradient
+          colors={["#075985", "#0F766E", "#166534"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.topHeader}
+        >
           <View>
             <Text style={styles.headerSmall}>
               SELAMAT DATANG DI
@@ -974,7 +1048,7 @@ const renderProducts = () => (
               </View>
             )}
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         {/* KONTEN HALAMAN */}
 
@@ -1007,7 +1081,7 @@ const renderProducts = () => (
                 size={23}
                 color={
                   activeTab === tab.name
-                    ? "#7561C9"
+                    ? "#0F5964"
                     : "#9993A8"
                 }
               />
@@ -1025,9 +1099,7 @@ const renderProducts = () => (
           ))}
         </View>
 
-        {/* ===================================
-            MODAL DETAIL PRODUK
-        =================================== */}
+        {/* MODAL DETAIL PRODUK */}
 
         <Modal
           visible={!!selectedProduct}
@@ -1050,19 +1122,24 @@ const renderProducts = () => (
 
               {selectedProduct && (
                 <>
-                  
-              
-              <View style={styles.detailImage}>
-                <Image
-                  source={selectedProduct.image}
-                  style={styles.detailPhoto}
-                  resizeMode="contain"
-                />
-              </View>
+                  <View style={styles.detailImage}>
+                    <Image
+                      source={selectedProduct.image}
+                      style={styles.detailPhoto}
+                      resizeMode="contain"
+                    />
+                  </View>
 
-
-
-                  <Text style={styles.brandLabel}>
+                  <Text
+                    style={[
+                      styles.brandLabel,
+                      {
+                        color: getBrandColor(
+                          selectedProduct.brand
+                        ).primary,
+                      },
+                    ]}
+                  >
                     {selectedProduct.brand}
                   </Text>
 
@@ -1070,7 +1147,16 @@ const renderProducts = () => (
                     {selectedProduct.name}
                   </Text>
 
-                  <Text style={styles.productPrice}>
+                  <Text
+                    style={[
+                      styles.productPrice,
+                      {
+                        color: getBrandColor(
+                          selectedProduct.brand
+                        ).primary,
+                      },
+                    ]}
+                  >
                     {formatRupiah(selectedProduct.price)}
                   </Text>
 
@@ -1079,7 +1165,14 @@ const renderProducts = () => (
                   </Text>
 
                   <TouchableOpacity
-                    style={styles.primaryButton}
+                    style={[
+                      styles.primaryButton,
+                      {
+                        backgroundColor: getBrandColor(
+                          selectedProduct.brand
+                        ).primary,
+                      },
+                    ]}
                     onPress={() => {
                       addToCart(selectedProduct);
                       setSelectedProduct(null);
@@ -1100,9 +1193,7 @@ const renderProducts = () => (
           </View>
         </Modal>
 
-        {/* ===================================
-            MODAL CHECKOUT
-        =================================== */}
+        {/* MODAL CHECKOUT */}
 
         <Modal
           visible={checkoutVisible}
@@ -1185,11 +1276,8 @@ const renderProducts = () => (
                   onChangeText={setCustomerNote}
                 />
 
-                {/* RINGKASAN CHECKOUT */}
-
                 <View style={styles.checkoutTotal}>
                   <Text>Total Pembayaran</Text>
-
                   <Text style={styles.totalPrice}>
                     {formatRupiah(totalPrice)}
                   </Text>
@@ -1198,8 +1286,6 @@ const renderProducts = () => (
                 <Text style={styles.checkoutHint}>
                   Pesanan dikirim melalui WhatsApp sesuai mitra produk.
                 </Text>
-
-                {/* TOMBOL WHATSAPP KARANG EMAS */}
 
                 {groupedOrders["Karang Emas"].length > 0 && (
                   <TouchableOpacity
@@ -1222,8 +1308,6 @@ const renderProducts = () => (
                   </TouchableOpacity>
                 )}
 
-                {/* TOMBOL WHATSAPP SUBUR JAYA */}
-
                 {groupedOrders["Subur Jaya Santan"].length > 0 && (
                   <TouchableOpacity
                     style={styles.whatsappButton}
@@ -1244,8 +1328,6 @@ const renderProducts = () => (
                     </Text>
                   </TouchableOpacity>
                 )}
-
-                {/* SELESAIKAN PESANAN */}
 
                 <TouchableOpacity
                   style={[
@@ -1288,17 +1370,16 @@ const renderProducts = () => (
 }
 
 // ===================================
-// 16. STYLE / DESAIN APLIKASI
+// 17. STYLE / DESAIN APLIKASI
 // ===================================
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#F4F8F6",
   },
 
   topHeader: {
-    backgroundColor: "#7561C9",
     paddingHorizontal: 22,
     paddingVertical: 17,
     flexDirection: "row",
@@ -1307,7 +1388,7 @@ const styles = StyleSheet.create({
   },
 
   headerSmall: {
-    color: "#E7E1FF",
+    color: "#D8F1ED",
     fontSize: 10,
     letterSpacing: 1.5,
     fontWeight: "600",
@@ -1336,7 +1417,7 @@ const styles = StyleSheet.create({
     minWidth: 19,
     height: 19,
     borderRadius: 10,
-    backgroundColor: "#F15B78",
+    backgroundColor: "#D9A441",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 4,
@@ -1355,6 +1436,12 @@ const styles = StyleSheet.create({
   homeContent: {
     padding: 17,
     paddingBottom: 25,
+  },
+
+  productsContent: {
+    padding: 17,
+    paddingBottom: 35,
+    flexGrow: 1,
   },
 
   pageContent: {
@@ -1376,7 +1463,7 @@ const styles = StyleSheet.create({
   },
 
   bannerSmall: {
-    color: "#E8E2FF",
+    color: "#D8F1ED",
     fontSize: 10,
     fontWeight: "bold",
     letterSpacing: 1.5,
@@ -1390,7 +1477,7 @@ const styles = StyleSheet.create({
   },
 
   bannerDescription: {
-    color: "#F1EDFF",
+    color: "#F1FAF7",
     fontSize: 12,
     lineHeight: 19,
     marginTop: 9,
@@ -1409,7 +1496,7 @@ const styles = StyleSheet.create({
   },
 
   bannerButtonText: {
-    color: "#6652B5",
+    color: "#075985",
     fontSize: 12,
     fontWeight: "bold",
   },
@@ -1430,18 +1517,18 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 18,
-    color: "#29243A",
+    color: "#263B35",
     fontWeight: "bold",
   },
 
   sectionSubtitle: {
     fontSize: 12,
-    color: "#918BA3",
+    color: "#81938B",
     marginTop: 4,
   },
 
   seeAll: {
-    color: "#7561C9",
+    color: "#0F5964",
     fontWeight: "bold",
     fontSize: 12,
   },
@@ -1458,18 +1545,17 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     padding: 12,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#EEEAF7",
+    borderWidth: 1.5,
   },
 
   logoContainer: {
     width: "100%",
     height: 100,
-    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
+    padding: 5,
   },
 
   mitraLogo: {
@@ -1478,7 +1564,7 @@ const styles = StyleSheet.create({
   },
 
   shopTitle: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 14,
     fontWeight: "bold",
     textAlign: "center",
@@ -1486,7 +1572,7 @@ const styles = StyleSheet.create({
 
   shopSubtitle: {
     fontSize: 11,
-    color: "#918BA3",
+    color: "#81938B",
     marginTop: 4,
   },
 
@@ -1498,7 +1584,6 @@ const styles = StyleSheet.create({
   },
 
   shopLinkText: {
-    color: "#7561C9",
     fontSize: 11,
     fontWeight: "bold",
   },
@@ -1516,15 +1601,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 11,
     borderWidth: 1,
-    borderColor: "#EEEAF5",
+    borderColor: "#E3ECE7",
   },
-
-
 
   productImage: {
     width: "100%",
     height: 145,
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#F4F8F6",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
@@ -1538,35 +1621,27 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 
-  imageLabel: {
-    color: "#A5A0B8",
-    fontSize: 10,
-    marginTop: 5,
-  },
-
   brandLabel: {
-    color: "#7561C9",
     fontSize: 10,
     fontWeight: "bold",
     marginBottom: 5,
   },
 
   productName: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 13,
     fontWeight: "bold",
     minHeight: 36,
   },
 
   productPrice: {
-    color: "#7561C9",
+    color: "#0F5964",
     fontSize: 14,
     fontWeight: "bold",
     marginTop: 7,
   },
 
   addButton: {
-    backgroundColor: "#7561C9",
     borderRadius: 9,
     flexDirection: "row",
     justifyContent: "center",
@@ -1582,24 +1657,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  pageHeading: {
-    marginBottom: 18,
-  },
-
   pageTitle: {
     fontSize: 23,
     fontWeight: "bold",
-    color: "#302A42",
-    marginBottom: 5,
+    color: "#263B35",
+    marginBottom: 13,
   },
 
-  
   searchWrapper: {
     height: 48,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#EAE6F2",
+    borderColor: "#E1EAE5",
     paddingHorizontal: 13,
     flexDirection: "row",
     alignItems: "center",
@@ -1610,7 +1680,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     fontSize: 13,
-    color: "#302A42",
+    color: "#263B35",
     paddingVertical: 0,
   },
 
@@ -1626,16 +1696,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#EAE6F2",
-  },
-
-  filterActive: {
-    backgroundColor: "#7561C9",
-    borderColor: "#7561C9",
+    borderColor: "#DCE8E1",
   },
 
   filterText: {
-    color: "#7561C9",
+    color: "#526D61",
     fontSize: 11,
     fontWeight: "600",
   },
@@ -1645,7 +1710,7 @@ const styles = StyleSheet.create({
   },
 
   resultText: {
-    color: "#918BA3",
+    color: "#81938B",
     fontSize: 11,
     marginTop: 16,
     marginBottom: 13,
@@ -1661,13 +1726,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: "bold",
-    color: "#302A42",
+    color: "#263B35",
     marginTop: 15,
     textAlign: "center",
   },
 
   emptyText: {
-    color: "#918BA3",
+    color: "#81938B",
     fontSize: 12,
     textAlign: "center",
     lineHeight: 19,
@@ -1676,7 +1741,7 @@ const styles = StyleSheet.create({
   },
 
   primaryButton: {
-    backgroundColor: "#7561C9",
+    backgroundColor: "#0F5964",
     borderRadius: 11,
     paddingVertical: 13,
     paddingHorizontal: 20,
@@ -1699,14 +1764,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     borderWidth: 1,
-    borderColor: "#EEEAF5",
+    borderColor: "#E3ECE7",
   },
-
 
   cartImage: {
     width: 95,
     height: 100,
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#F4F8F6",
     borderRadius: 13,
     justifyContent: "center",
     alignItems: "center",
@@ -1725,7 +1789,7 @@ const styles = StyleSheet.create({
   },
 
   cartName: {
-    color: "#302A42",
+    color: "#263B35",
     fontWeight: "bold",
     fontSize: 13,
   },
@@ -1741,13 +1805,13 @@ const styles = StyleSheet.create({
     width: 29,
     height: 29,
     borderRadius: 9,
-    backgroundColor: "#F1EFF8",
+    backgroundColor: "#E5F3EF",
     justifyContent: "center",
     alignItems: "center",
   },
 
   quantityText: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 13,
     fontWeight: "bold",
   },
@@ -1759,11 +1823,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#EEEAF5",
+    borderColor: "#E3ECE7",
   },
 
   summaryTitle: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 15,
@@ -1776,7 +1840,7 @@ const styles = StyleSheet.create({
   },
 
   totalPrice: {
-    color: "#7561C9",
+    color: "#0F5964",
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -1790,7 +1854,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 30,
-    backgroundColor: "#EEEAFB",
+    backgroundColor: "#E5F3EF",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1798,12 +1862,12 @@ const styles = StyleSheet.create({
   aboutTitle: {
     fontSize: 26,
     fontWeight: "bold",
-    color: "#7561C9",
+    color: "#0F5964",
     marginTop: 18,
   },
 
   aboutDescription: {
-    color: "#777187",
+    color: "#71847B",
     fontSize: 13,
     lineHeight: 22,
     textAlign: "center",
@@ -1818,18 +1882,18 @@ const styles = StyleSheet.create({
     padding: 18,
     marginTop: 28,
     borderWidth: 1,
-    borderColor: "#EEEAF5",
+    borderColor: "#E3ECE7",
   },
 
   aboutInfoTitle: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 15,
     fontWeight: "bold",
     marginBottom: 12,
   },
 
   aboutInfoText: {
-    color: "#777187",
+    color: "#71847B",
     fontSize: 12,
     marginTop: 8,
   },
@@ -1840,7 +1904,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingBottom: 8,
     borderTopWidth: 1,
-    borderTopColor: "#EEEAF5",
+    borderTopColor: "#E3ECE7",
     justifyContent: "space-around",
   },
 
@@ -1856,13 +1920,13 @@ const styles = StyleSheet.create({
   },
 
   navTextActive: {
-    color: "#7561C9",
+    color: "#0F5964",
     fontWeight: "bold",
   },
 
   modalBackground: {
     flex: 1,
-    backgroundColor: "rgba(25,20,45,0.55)",
+    backgroundColor: "rgba(25,40,35,0.55)",
     justifyContent: "center",
     alignItems: "center",
     padding: 18,
@@ -1880,32 +1944,31 @@ const styles = StyleSheet.create({
     padding: 5,
   },
 
+  detailImage: {
+    height: 230,
+    backgroundColor: "#F4F8F6",
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 15,
+    marginBottom: 17,
+    overflow: "hidden",
+  },
 
-detailImage: {
-  height: 230,
-  backgroundColor: "#F8F7FC",
-  borderRadius: 16,
-  justifyContent: "center",
-  alignItems: "center",
-  padding: 15,
-  marginBottom: 17,
-  overflow: "hidden",
-},
-
-detailPhoto: {
-  width: "100%",
-  height: "100%",
-},
+  detailPhoto: {
+    width: "100%",
+    height: "100%",
+  },
 
   detailTitle: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 21,
     fontWeight: "bold",
     marginTop: 5,
   },
 
   detailDescription: {
-    color: "#777187",
+    color: "#71847B",
     fontSize: 13,
     lineHeight: 21,
     marginTop: 13,
@@ -1927,13 +1990,13 @@ detailPhoto: {
   },
 
   checkoutTitle: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 19,
     fontWeight: "bold",
   },
 
   inputLabel: {
-    color: "#302A42",
+    color: "#263B35",
     fontSize: 12,
     fontWeight: "bold",
     marginBottom: 7,
@@ -1941,14 +2004,14 @@ detailPhoto: {
   },
 
   formInput: {
-    backgroundColor: "#F8F7FC",
+    backgroundColor: "#F4F8F6",
     borderWidth: 1,
-    borderColor: "#EAE6F2",
+    borderColor: "#E1EAE5",
     borderRadius: 10,
     paddingHorizontal: 13,
     paddingVertical: 12,
     fontSize: 13,
-    color: "#302A42",
+    color: "#263B35",
   },
 
   addressInput: {
@@ -1957,7 +2020,7 @@ detailPhoto: {
   },
 
   checkoutTotal: {
-    backgroundColor: "#F4F1FF",
+    backgroundColor: "#E5F3EF",
     borderRadius: 12,
     padding: 15,
     marginTop: 20,
@@ -1967,7 +2030,7 @@ detailPhoto: {
   },
 
   checkoutHint: {
-    color: "#918BA3",
+    color: "#81938B",
     fontSize: 11,
     lineHeight: 18,
     marginTop: 13,
@@ -1992,7 +2055,7 @@ detailPhoto: {
   },
 
   finishButton: {
-    backgroundColor: "#7561C9",
+    backgroundColor: "#0F5964",
     borderRadius: 11,
     paddingVertical: 14,
     flexDirection: "row",
@@ -2003,11 +2066,11 @@ detailPhoto: {
   },
 
   finishButtonDisabled: {
-    backgroundColor: "#B9B2D2",
+    backgroundColor: "#AABDB5",
   },
 
   finishHint: {
-    color: "#918BA3",
+    color: "#81938B",
     fontSize: 10,
     lineHeight: 17,
     textAlign: "center",
