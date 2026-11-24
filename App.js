@@ -396,7 +396,7 @@ export default function App() {
         }}
       >
         <Image
-          source={require("./assets/mitra/kerang-emas.jpeg")}
+          source={require("./assets/mitra/karang-emas.jpeg")}
           style={styles.mitraLogo}
           resizeMode="contain"
         />
