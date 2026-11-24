@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
-  image,
+  Image,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -12,13 +12,14 @@ import {
   Modal,
   Alert,
   Linking,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
 // ===================================
-// 1. KONFIGURASI NOMOR WHATSAPP TOKO
+// 1. NOMOR WHATSAPP MITRA
 // ===================================
 
 const WHATSAPP_NUMBERS = {
@@ -27,8 +28,9 @@ const WHATSAPP_NUMBERS = {
 };
 
 // ===================================
-// 2. DATA PRODUK SEMENTARA
+// 2. DATA PRODUK
 // ===================================
+
 
 const PRODUCTS = [
   {
@@ -38,14 +40,16 @@ const PRODUCTS = [
     category: "Pangan Laut",
     price: 75000,
     description: "Ikan segar berkualitas untuk kebutuhan memasak.",
+    image: require("./assets/products/karang-emas/ikan-segar.jpeg"),
   },
   {
     id: "2",
-    name: "Amplang 250 gr",
+    name: "Empek-empek Ikan",
     brand: "Karang Emas",
     category: "Cemilan",
     price: 30000,
-    description: "Amplang berkualitas untuk dinikmati.",
+    image: require("./assets/products/karang-emas/empek2-ikan.jpeg"),
+    description: "Empek-empek ikan dengan cita rasa khas.",
   },
   {
     id: "3",
@@ -53,7 +57,8 @@ const PRODUCTS = [
     brand: "Karang Emas",
     category: "Cemilan",
     price: 50000,
-    description: "Amplang berkualitas untuk dinikmati.",
+    image: require("./assets/products/karang-emas/amplang-ikan.jpeg"),
+    description: "Amplang ikan berkualitas untuk dinikmati.",
   },
   {
     id: "4",
@@ -61,7 +66,8 @@ const PRODUCTS = [
     brand: "Karang Emas",
     category: "Cemilan",
     price: 100000,
-    description: "Amplang berkualitas untuk dinikmati.",
+    image: require("./assets/products/karang-emas/amplang-ikan.jpeg"),
+    description: "Amplang ikan berkualitas ukuran 1 Kg.",
   },
   {
     id: "7",
@@ -69,6 +75,7 @@ const PRODUCTS = [
     brand: "Subur Jaya Santan",
     category: "Santan",
     price: 8000,
+    image: require("./assets/products/subur-jaya/santan-murni.jpeg"),
     description: "Santan segar untuk berbagai masakan.",
   },
   {
@@ -77,6 +84,7 @@ const PRODUCTS = [
     brand: "Subur Jaya Santan",
     category: "Santan",
     price: 15000,
+    image: require("./assets/products/subur-jaya/santan-murni.jpeg"),
     description: "Santan segar ukuran 500 ml.",
   },
   {
@@ -85,6 +93,7 @@ const PRODUCTS = [
     brand: "Subur Jaya Santan",
     category: "Kelapa",
     price: 12000,
+    image: require("./assets/products/karang-emas/kelapa.jpeg"),
     description: "Kelapa parut untuk kebutuhan memasak.",
   },
   {
@@ -93,6 +102,7 @@ const PRODUCTS = [
     brand: "Subur Jaya Santan",
     category: "Santan",
     price: 28000,
+    image: require("./assets/products/subur-jaya/santan-murni.jpeg"),
     description: "Santan kental untuk berbagai olahan makanan.",
   },
   {
@@ -101,6 +111,7 @@ const PRODUCTS = [
     brand: "Subur Jaya Santan",
     category: "Kelapa",
     price: 25000,
+    image: require("./assets/products/subur-jaya/minyak-kelapa.jpeg"),
     description: "Minyak kelapa ukuran 500 ml.",
   },
   {
@@ -109,29 +120,48 @@ const PRODUCTS = [
     brand: "Subur Jaya Santan",
     category: "Kelapa",
     price: 10000,
+    image: require("./assets/products/karang-emas/kelapa.jpeg"),
     description: "Kelapa utuh untuk kebutuhan rumah tangga.",
   },
 ];
 
+const BRANDS = ["Karang Emas", "Subur Jaya Santan"];
+
 const formatRupiah = (number) =>
-  "Rp" + number.toLocaleString("id-ID");
+  "Rp" + Number(number || 0).toLocaleString("id-ID");
 
 // ===================================
 // 3. KOMPONEN UTAMA
 // ===================================
 
 export default function App() {
+  const { width: windowWidth } = useWindowDimensions();
+
+  const productCardWidth =
+    windowWidth >= 1100
+      ? "22.5%"
+      : windowWidth >= 700
+      ? "30.5%"
+      : "47.5%";
+
   const [activeTab, setActiveTab] = useState("Beranda");
   const [selectedBrand, setSelectedBrand] = useState("Semua");
   const [search, setSearch] = useState("");
-  const [cart, setCart] = useState({});
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
+  // Keranjang menggunakan ID produk sebagai kunci
+  const [cart, setCart] = useState({});
+
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [checkoutVisible, setCheckoutVisible] = useState(false);
+
+  // Data pelanggan
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerNote, setCustomerNote] = useState("");
+
+  // Menandai toko yang WhatsApp-nya sudah dibuka
+  const [openedBrands, setOpenedBrands] = useState({});
 
   // ===================================
   // 4. FILTER PRODUK
@@ -184,43 +214,58 @@ export default function App() {
     });
   };
 
-  const cartItems = PRODUCTS.filter(
-    (product) => cart[product.id] > 0
-  );
+  // Data keranjang lengkap
+  const cartItems = PRODUCTS
+    .filter((product) => cart[product.id] > 0)
+    .map((product) => ({
+      ...product,
+      quantity: cart[product.id],
+    }));
 
+  // Total seluruh produk
   const totalItems = Object.values(cart).reduce(
     (total, quantity) => total + quantity,
     0
   );
 
+  // Total harga
   const totalPrice = cartItems.reduce(
     (total, product) =>
-      total + product.price * cart[product.id],
+      total + product.price * product.quantity,
     0
   );
 
   // ===================================
-  // 6. KELOMPOKKAN PESANAN PER TOKO
+  // 6. KELOMPOK PESANAN PER MITRA
   // ===================================
 
   const groupedOrders = {
     "Karang Emas": cartItems.filter(
       (item) => item.brand === "Karang Emas"
     ),
+
     "Subur Jaya Santan": cartItems.filter(
       (item) => item.brand === "Subur Jaya Santan"
     ),
   };
+
+  const activeOrderBrands = BRANDS.filter(
+    (brand) => groupedOrders[brand].length > 0
+  );
 
   // ===================================
   // 7. KIRIM PESANAN WHATSAPP
   // ===================================
 
   const sendWhatsAppOrder = async (brand) => {
-    if (!customerName || !customerPhone || !customerAddress) {
+    if (
+      !customerName.trim() ||
+      !customerPhone.trim() ||
+      !customerAddress.trim()
+    ) {
       Alert.alert(
         "Data belum lengkap",
-        "Silakan lengkapi nama, nomor telepon, dan alamat."
+        "Silakan lengkapi nama, nomor WhatsApp, dan alamat."
       );
       return;
     }
@@ -228,7 +273,10 @@ export default function App() {
     const items = groupedOrders[brand];
 
     if (!items || items.length === 0) {
-      Alert.alert("Informasi", "Tidak ada produk dari toko ini.");
+      Alert.alert(
+        "Informasi",
+        "Tidak ada produk dari toko ini."
+      );
       return;
     }
 
@@ -237,19 +285,19 @@ export default function App() {
     if (!number || number.includes("x")) {
       Alert.alert(
         "Nomor WhatsApp belum diatur",
-        "Silakan isi nomor WhatsApp toko pada bagian WHATSAPP_NUMBERS di App.js."
+        "Silakan periksa nomor WhatsApp mitra."
       );
       return;
     }
 
     const orderDetails = items
       .map((item, index) => {
-        const quantity = cart[item.id];
-        const subtotal = item.price * quantity;
+        const subtotal = item.price * item.quantity;
 
         return (
           `${index + 1}. ${item.name}\n` +
-          `   ${quantity} x ${formatRupiah(item.price)}\n` +
+          `   Jumlah: ${item.quantity}\n` +
+          `   Harga: ${formatRupiah(item.price)}\n` +
           `   Subtotal: ${formatRupiah(subtotal)}`
         );
       })
@@ -257,7 +305,7 @@ export default function App() {
 
     const orderTotal = items.reduce(
       (total, item) =>
-        total + item.price * cart[item.id],
+        total + item.price * item.quantity,
       0
     );
 
@@ -265,7 +313,7 @@ export default function App() {
       `HALO ${brand.toUpperCase()}\n\n` +
       `Saya ingin melakukan pemesanan:\n\n` +
       `${orderDetails}\n\n` +
-      `Total: ${formatRupiah(orderTotal)}\n\n` +
+      `TOTAL PESANAN: ${formatRupiah(orderTotal)}\n\n` +
       `DATA PELANGGAN\n` +
       `Nama: ${customerName}\n` +
       `No. HP: ${customerPhone}\n` +
@@ -278,6 +326,11 @@ export default function App() {
 
     try {
       await Linking.openURL(url);
+
+      setOpenedBrands((previous) => ({
+        ...previous,
+        [brand]: true,
+      }));
     } catch (error) {
       Alert.alert(
         "Gagal membuka WhatsApp",
@@ -287,7 +340,54 @@ export default function App() {
   };
 
   // ===================================
-  // 8. KOMPONEN TOMBOL KATEGORI
+  // 8. SELESAIKAN PESANAN
+  // ===================================
+
+  const finishOrder = () => {
+    const allBrandsOpened = activeOrderBrands.every(
+      (brand) => openedBrands[brand]
+    );
+
+    if (!allBrandsOpened) {
+      Alert.alert(
+        "Pesanan belum lengkap",
+        "Silakan buka WhatsApp untuk semua mitra yang memiliki pesanan."
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Konfirmasi Pesanan",
+      "Apakah kamu sudah mengirim seluruh pesanan melalui WhatsApp?",
+      [
+        {
+          text: "Belum",
+          style: "cancel",
+        },
+        {
+          text: "Ya, Sudah",
+          onPress: () => {
+            setCart({});
+            setCheckoutVisible(false);
+            setOpenedBrands({});
+
+            setCustomerName("");
+            setCustomerPhone("");
+            setCustomerAddress("");
+            setCustomerNote("");
+
+            Alert.alert(
+              "Berhasil",
+              "Keranjang sudah dikosongkan. Terima kasih telah berbelanja di KosaBangsa!"
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  // ===================================
+  // 9. TOMBOL FILTER MITRA
   // ===================================
 
   const BrandButton = ({ title }) => (
@@ -310,195 +410,361 @@ export default function App() {
   );
 
   // ===================================
-  // 9. TAMPILAN KARTU PRODUK
+  // 10. KARTU PRODUK
   // ===================================
 
-  const ProductCard = ({ product }) => (
+
+const ProductCard = ({ product }) => (
+  <TouchableOpacity
+    style={[
+      styles.productCard,
+      { width: productCardWidth },
+    ]}
+    onPress={() => setSelectedProduct(product)}
+    activeOpacity={0.85}
+  >
+    <View style={styles.productImage}>
+      <Image
+        source={product.image}
+        style={styles.productPhoto}
+        resizeMode="contain"
+      />
+    </View>
+
+    <Text style={styles.brandLabel}>
+      {product.brand}
+    </Text>
+
+    <Text style={styles.productName}>
+      {product.name}
+    </Text>
+
+    <Text style={styles.productPrice}>
+      {formatRupiah(product.price)}
+    </Text>
+
     <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => setSelectedProduct(product)}
-      activeOpacity={0.85}
+      style={styles.addButton}
+      onPress={() => addToCart(product)}
     >
-      <View style={styles.productImage}>
-        <Ionicons
-          name="image-outline"
-          size={42}
-          color="#A5A0B8"
-        />
-        <Text style={styles.imageLabel}>Foto Produk</Text>
-      </View>
-
-      <Text style={styles.brandLabel}>{product.brand}</Text>
-
-      <Text style={styles.productName}>
-        {product.name}
+      <Ionicons name="add" size={18} color="#FFFFFF" />
+      <Text style={styles.addButtonText}>
+        Keranjang
       </Text>
-
-      <Text style={styles.productPrice}>
-        {formatRupiah(product.price)}
-      </Text>
-
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => addToCart(product)}
-      >
-        <Ionicons name="add" size={18} color="#FFFFFF" />
-        <Text style={styles.addButtonText}>Keranjang</Text>
-      </TouchableOpacity>
     </TouchableOpacity>
-  );
+  </TouchableOpacity>
+);
 
   // ===================================
-  // 10. HALAMAN BERANDA DAN PRODUK
+  // 11. HALAMAN BERANDA
   // ===================================
 
   const renderHome = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.homeContent}
+    >
       <LinearGradient
-        colors={["#7561C9", "#A394E9"]}
+        colors={["#6652B5", "#9583E0", "#B4A5EF"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.banner}
       >
-        <Text style={styles.bannerSmall}>
-          SELAMAT DATANG
-        </Text>
-
-        <Text style={styles.bannerTitle}>
-          Karang Emas &{"\n"}Subur Jaya Santan
-        </Text>
-
-        <Text style={styles.bannerDescription}>
-          Belanja kebutuhan harian lebih mudah dalam satu aplikasi.
-        </Text>
-
-        <TouchableOpacity
-          style={styles.bannerButton}
-          onPress={() => setActiveTab("Produk")}
-        >
-          <Text style={styles.bannerButtonText}>
-            Mulai Belanja
+        <View style={styles.bannerContent}>
+          <Text style={styles.bannerSmall}>
+            SELAMAT DATANG DI
           </Text>
-        </TouchableOpacity>
+
+          <Text style={styles.bannerTitle}>
+            KosaBangsa
+          </Text>
+
+          <Text style={styles.bannerDescription}>
+            Temukan produk unggulan dari mitra lokal.
+            Belanja lebih mudah, cepat, dan praktis.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.bannerButton}
+            onPress={() => setActiveTab("Produk")}
+          >
+            <Text style={styles.bannerButtonText}>
+              Mulai Belanja
+            </Text>
+            <Ionicons
+              name="arrow-forward"
+              size={17}
+              color="#6652B5"
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.bannerDecoration}>
+          <Ionicons
+            name="bag-handle"
+            size={75}
+            color="rgba(255,255,255,0.22)"
+          />
+        </View>
       </LinearGradient>
 
+      {/* MITRA PILIHAN */}
+
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          Pilihan Toko
-        </Text>
+        <View>
+          <Text style={styles.sectionTitle}>
+            Mitra Pilihan
+          </Text>
+          <Text style={styles.sectionSubtitle}>
+            Kenali toko mitra KosaBangsa
+          </Text>
+        </View>
       </View>
 
+      <View style={styles.shopContainer}>
+        <TouchableOpacity
+          style={styles.shopCard}
+          onPress={() => {
+            setSelectedBrand("Karang Emas");
+            setActiveTab("Produk");
+          }}
+        >
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("./assets/mitra/karang-emas.jpeg")}
+              style={styles.mitraLogo}
+              resizeMode="contain"
+            />
+          </View>
 
-    <View style={styles.shopContainer}>
-      <TouchableOpacity
-        style={styles.shopCard}
-        onPress={() => {
-          setSelectedBrand("Karang Emas");
-          setActiveTab("Produk");
-        }}
-      >
-        <Image
-          source={require("./assets/mitra/karang-emas.jpeg")}
-          style={styles.mitraLogo}
-          resizeMode="contain"
-        />
-        <Text style={styles.shopTitle}>Kerang Emas</Text>
-        <Text style={styles.shopSubtitle}>Kelompok Nelayan</Text>
-        <Text style={styles.shopSubtitle}>Lihat produk</Text>
-      </TouchableOpacity>
+          <Text style={styles.shopTitle}>
+            Karang Emas
+          </Text>
 
-      <TouchableOpacity
-        style={styles.shopCard}
-        onPress={() => {
-          setSelectedBrand("Subur Jaya Santan");
-          setActiveTab("Produk");
-        }}
-      >
-        <Image
-          source={require("./assets/mitra/subur-jaya.jpeg")}
-          style={styles.mitraLogo}
-          resizeMode="contain"
-        />
-        <Text style={styles.shopTitle}>Subur Jaya</Text>
-        <Text style={styles.shopSubtitle}>Kelompok Tani</Text>
-        <Text style={styles.shopSubtitle}>Lihat produk</Text>
-      </TouchableOpacity>
-    </View>
+          <Text style={styles.shopSubtitle}>
+            Kelompok Nelayan
+          </Text>
 
+          <View style={styles.shopLink}>
+            <Text style={styles.shopLinkText}>
+              Lihat Produk
+            </Text>
+            <Ionicons
+              name="arrow-forward"
+              size={13}
+              color="#7561C9"
+            />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.shopCard}
+          onPress={() => {
+            setSelectedBrand("Subur Jaya Santan");
+            setActiveTab("Produk");
+          }}
+        >
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("./assets/mitra/subur-jaya.jpeg")}
+              style={styles.mitraLogo}
+              resizeMode="contain"
+            />
+          </View>
+
+          <Text style={styles.shopTitle}>
+            Subur Jaya
+          </Text>
+
+          <Text style={styles.shopSubtitle}>
+            Kelompok Tani
+          </Text>
+
+          <View style={styles.shopLink}>
+            <Text style={styles.shopLinkText}>
+              Lihat Produk
+            </Text>
+            <Ionicons
+              name="arrow-forward"
+              size={13}
+              color="#7561C9"
+            />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* PRODUK PILIHAN */}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          Produk Pilihan
-        </Text>
+        <View>
+          <Text style={styles.sectionTitle}>
+            Produk Pilihan
+          </Text>
+          <Text style={styles.sectionSubtitle}>
+            Produk unggulan dari mitra kami
+          </Text>
+        </View>
 
         <TouchableOpacity
           onPress={() => setActiveTab("Produk")}
         >
-          <Text style={styles.seeAll}>Lihat Semua</Text>
+          <Text style={styles.seeAll}>
+            Lihat Semua
+          </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.productGrid}>
         {PRODUCTS.slice(0, 4).map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+            key={product.id}
+            product={product}
+          />
         ))}
       </View>
     </ScrollView>
   );
 
-  const renderProducts = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <Text style={styles.pageTitle}>Katalog Produk</Text>
+  // ===================================
+  // 12. HALAMAN PRODUK
+  // ===================================
+
+
+
+
+const renderProducts = () => (
+  <ScrollView
+    style={{ flex: 1 }}
+    contentContainerStyle={{
+      padding: 17,
+      paddingBottom: 35,
+      flexGrow: 1,
+    }}
+    showsVerticalScrollIndicator={true}
+    nestedScrollEnabled={true}
+    keyboardShouldPersistTaps="handled"
+  >
+    {/* JUDUL */}
+    <Text style={styles.pageTitle}>
+      Katalog Produk
+    </Text>
+
+    {/* PENCARIAN */}
+    <View style={styles.searchWrapper}>
+      <Ionicons
+        name="search-outline"
+        size={20}
+        color="#918BA3"
+      />
 
       <TextInput
         style={styles.searchInput}
-        placeholder="Cari nama produk..."
+        placeholder="Cari produk..."
+        placeholderTextColor="#9993A8"
         value={search}
         onChangeText={setSearch}
       />
 
+      {search.length > 0 && (
+        <TouchableOpacity onPress={() => setSearch("")}>
+          <Ionicons
+            name="close-circle"
+            size={19}
+            color="#9993A8"
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+
+    {/* FILTER MITRA */}
+    <View style={styles.filterContainer}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
+        nestedScrollEnabled={true}
+        directionalLockEnabled={true}
+        keyboardShouldPersistTaps="handled"
       >
         <BrandButton title="Semua" />
         <BrandButton title="Karang Emas" />
         <BrandButton title="Subur Jaya Santan" />
       </ScrollView>
+    </View>
 
+    {/* JUMLAH PRODUK */}
+    <Text style={styles.resultText}>
+      Menampilkan {filteredProducts.length} produk
+    </Text>
+
+    {/* DAFTAR PRODUK */}
+    {filteredProducts.length > 0 ? (
       <View style={styles.productGrid}>
         {filteredProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+            key={product.id}
+            product={product}
+          />
         ))}
       </View>
+    ) : (
+      <View style={styles.emptyCart}>
+        <Ionicons
+          name="search-outline"
+          size={55}
+          color="#B8B1D0"
+        />
 
-      {filteredProducts.length === 0 && (
-        <Text style={styles.emptyText}>
-          Produk tidak ditemukan.
+        <Text style={styles.emptyTitle}>
+          Produk tidak ditemukan
         </Text>
-      )}
-    </ScrollView>
-  );
+
+        <Text style={styles.emptyText}>
+          Coba gunakan kata kunci atau filter mitra lainnya.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => {
+            setSearch("");
+            setSelectedBrand("Semua");
+          }}
+        >
+          <Text style={styles.primaryButtonText}>
+            Tampilkan Semua Produk
+          </Text>
+        </TouchableOpacity>
+      </View>
+    )}
+  </ScrollView>
+);
 
   // ===================================
-  // 11. HALAMAN KERANJANG
+  // 13. HALAMAN KERANJANG
   // ===================================
 
   const renderCart = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <Text style={styles.pageTitle}>Keranjang Belanja</Text>
+    <ScrollView
+      style={styles.pageContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.pageTitle}>
+        Keranjang Belanja
+      </Text>
 
       {cartItems.length === 0 ? (
         <View style={styles.emptyCart}>
           <Ionicons
             name="cart-outline"
-            size={70}
-            color="#B7B1C9"
+            size={64}
+            color="#B8B1D0"
           />
+
           <Text style={styles.emptyTitle}>
             Keranjang masih kosong
           </Text>
+
           <Text style={styles.emptyText}>
-            Silakan pilih produk terlebih dahulu.
+            Yuk, temukan produk menarik dari mitra KosaBangsa.
           </Text>
 
           <TouchableOpacity
@@ -506,21 +772,26 @@ export default function App() {
             onPress={() => setActiveTab("Produk")}
           >
             <Text style={styles.primaryButtonText}>
-              Mulai Belanja
+              Lihat Produk
             </Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
           {cartItems.map((product) => (
-            <View key={product.id} style={styles.cartCard}>
-              <View style={styles.cartImage}>
-                <Ionicons
-                  name="image-outline"
-                  size={28}
-                  color="#A5A0B8"
-                />
-              </View>
+            <View
+              key={product.id}
+              style={styles.cartCard}
+            >
+              
+
+            <View style={styles.cartImage}>
+              <Image
+                source={product.image}
+                style={styles.cartPhoto}
+                resizeMode="contain"
+              />
+            </View>
 
               <View style={styles.cartInfo}>
                 <Text style={styles.brandLabel}>
@@ -540,42 +811,55 @@ export default function App() {
                     style={styles.quantityButton}
                     onPress={() => decreaseCart(product.id)}
                   >
-                    <Ionicons name="remove" size={18} color="#7561C9" />
+                    <Ionicons
+                      name="remove"
+                      size={18}
+                      color="#7561C9"
+                    />
                   </TouchableOpacity>
 
                   <Text style={styles.quantityText}>
-                    {cart[product.id]}
+                    {product.quantity}
                   </Text>
 
                   <TouchableOpacity
                     style={styles.quantityButton}
                     onPress={() => addToCart(product)}
                   >
-                    <Ionicons name="add" size={18} color="#7561C9" />
+                    <Ionicons
+                      name="add"
+                      size={18}
+                      color="#7561C9"
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.quantityButton}
+                    onPress={() => removeFromCart(product.id)}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={17}
+                      color="#D9534F"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
-
-              <TouchableOpacity
-                onPress={() => removeFromCart(product.id)}
-              >
-                <Ionicons name="trash-outline" size={22} color="#E35D6A" />
-              </TouchableOpacity>
             </View>
           ))}
 
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>
-              Ringkasan Belanja
+              Ringkasan Pesanan
             </Text>
 
             <View style={styles.summaryRow}>
-              <Text>Total Produk</Text>
-              <Text>{totalItems} item</Text>
+              <Text>Total Item</Text>
+              <Text>{totalItems} produk</Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Text>Total Pembayaran</Text>
+              <Text>Total Harga</Text>
               <Text style={styles.totalPrice}>
                 {formatRupiah(totalPrice)}
               </Text>
@@ -583,10 +867,13 @@ export default function App() {
 
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={() => setCheckoutVisible(true)}
+              onPress={() => {
+                setOpenedBrands({});
+                setCheckoutVisible(true);
+              }}
             >
               <Text style={styles.primaryButtonText}>
-                Lanjut ke Checkout
+                Lanjut Checkout
               </Text>
             </TouchableOpacity>
           </View>
@@ -596,277 +883,412 @@ export default function App() {
   );
 
   // ===================================
-  // 12. HALAMAN TENTANG
+  // 14. HALAMAN TENTANG
   // ===================================
 
   const renderAbout = () => (
-    <View style={styles.aboutContainer}>
-      <View style={styles.aboutLogo}>
-        <Ionicons name="storefront" size={50} color="#7561C9" />
-      </View>
+    <ScrollView
+      style={styles.pageContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.aboutContainer}>
+        <View style={styles.aboutLogo}>
+          <Ionicons
+            name="storefront"
+            size={50}
+            color="#7561C9"
+          />
+        </View>
 
-      <Text style={styles.aboutTitle}>
-        Karang Emas &{"\n"}Subur Jaya Santan
-      </Text>
-
-      <Text style={styles.aboutDescription}>
-        Satu aplikasi untuk memudahkan pelanggan
-        menemukan dan memesan produk dari kedua toko.
-      </Text>
-
-      <View style={styles.aboutInfo}>
-        <Text style={styles.aboutInfoTitle}>Informasi Aplikasi</Text>
-        <Text style={styles.aboutInfoText}>Versi: 1.0.0</Text>
-        <Text style={styles.aboutInfoText}>
-          Platform: Mobile Application
+        <Text style={styles.aboutTitle}>
+          KosaBangsa
         </Text>
-        <Text style={styles.aboutInfoText}>
-          Layanan: Katalog dan pemesanan produk
+
+        <Text style={styles.aboutDescription}>
+          Satu aplikasi untuk memudahkan pelanggan menemukan
+          dan memesan produk dari mitra Karang Emas dan
+          Subur Jaya Santan.
         </Text>
+
+        <View style={styles.aboutInfo}>
+          <Text style={styles.aboutInfoTitle}>
+            Informasi Aplikasi
+          </Text>
+
+          <Text style={styles.aboutInfoText}>
+            Versi: 1.0.0
+          </Text>
+
+          <Text style={styles.aboutInfoText}>
+            Platform: Mobile Application
+          </Text>
+
+          <Text style={styles.aboutInfoText}>
+            Layanan: Katalog dan pemesanan produk
+          </Text>
+        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 
   // ===================================
-  // 13. TAMPILAN UTAMA
+  // 15. TAMPILAN UTAMA
   // ===================================
 
   return (
     <SafeAreaProvider>
-    <SafeAreaView style={styles.container}>
-      <StatusBar
-        backgroundColor="#7561C9"
-        barStyle="light-content"
-      />
+      <SafeAreaView style={styles.container}>
+        <StatusBar
+          backgroundColor="#7561C9"
+          barStyle="light-content"
+        />
 
-      <View style={styles.topHeader}>
-        <View>
-          <Text style={styles.headerSmall}>
-            SELAMAT DATANG DI
-          </Text>
-          <Text style={styles.headerTitle}>
-            KosaBangsa
-          </Text>
-        </View>
+        {/* HEADER */}
 
-        <TouchableOpacity
-          style={styles.headerCart}
-          onPress={() => setActiveTab("Keranjang")}
-        >
-          <Ionicons name="cart-outline" size={25} color="#FFFFFF" />
-          {totalItems > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>
-                {totalItems}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+        <View style={styles.topHeader}>
+          <View>
+            <Text style={styles.headerSmall}>
+              SELAMAT DATANG DI
+            </Text>
 
-      <View style={styles.content}>
-        {activeTab === "Beranda" && renderHome()}
-        {activeTab === "Produk" && renderProducts()}
-        {activeTab === "Keranjang" && renderCart()}
-        {activeTab === "Tentang" && renderAbout()}
-      </View>
+            <Text style={styles.headerTitle}>
+              KosaBangsa
+            </Text>
+          </View>
 
-      {/* NAVIGASI BAWAH */}
-
-      <View style={styles.bottomNav}>
-        {[
-          { name: "Beranda", icon: "home-outline" },
-          { name: "Produk", icon: "grid-outline" },
-          { name: "Keranjang", icon: "cart-outline" },
-          { name: "Tentang", icon: "information-circle-outline" },
-        ].map((tab) => (
           <TouchableOpacity
-            key={tab.name}
-            style={styles.navItem}
-            onPress={() => setActiveTab(tab.name)}
+            style={styles.headerCart}
+            onPress={() => setActiveTab("Keranjang")}
           >
             <Ionicons
-              name={tab.icon}
-              size={23}
-              color={activeTab === tab.name ? "#7561C9" : "#9993A8"}
+              name="cart-outline"
+              size={25}
+              color="#FFFFFF"
             />
-            <Text
-              style={[
-                styles.navText,
-                activeTab === tab.name && styles.navTextActive,
-              ]}
-            >
-              {tab.name}
-            </Text>
+
+            {totalItems > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>
+                  {totalItems}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
 
-      {/* MODAL DETAIL PRODUK */}
+        {/* KONTEN HALAMAN */}
 
-      <Modal
-        visible={!!selectedProduct}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSelectedProduct(null)}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalCard}>
+        <View style={styles.content}>
+          {activeTab === "Beranda" && renderHome()}
+          {activeTab === "Produk" && renderProducts()}
+          {activeTab === "Keranjang" && renderCart()}
+          {activeTab === "Tentang" && renderAbout()}
+        </View>
+
+        {/* NAVIGASI BAWAH */}
+
+        <View style={styles.bottomNav}>
+          {[
+            { name: "Beranda", icon: "home-outline" },
+            { name: "Produk", icon: "grid-outline" },
+            { name: "Keranjang", icon: "cart-outline" },
+            {
+              name: "Tentang",
+              icon: "information-circle-outline",
+            },
+          ].map((tab) => (
             <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setSelectedProduct(null)}
+              key={tab.name}
+              style={styles.navItem}
+              onPress={() => setActiveTab(tab.name)}
             >
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
+              <Ionicons
+                name={tab.icon}
+                size={23}
+                color={
+                  activeTab === tab.name
+                    ? "#7561C9"
+                    : "#9993A8"
+                }
+              />
 
-            {selectedProduct && (
-              <>
-                <View style={styles.detailImage}>
+              <Text
+                style={[
+                  styles.navText,
+                  activeTab === tab.name &&
+                    styles.navTextActive,
+                ]}
+              >
+                {tab.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ===================================
+            MODAL DETAIL PRODUK
+        =================================== */}
+
+        <Modal
+          visible={!!selectedProduct}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setSelectedProduct(null)}
+        >
+          <View style={styles.modalBackground}>
+            <View style={styles.modalCard}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setSelectedProduct(null)}
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color="#333333"
+                />
+              </TouchableOpacity>
+
+              {selectedProduct && (
+                <>
+                  
+              
+              <View style={styles.detailImage}>
+                <Image
+                  source={selectedProduct.image}
+                  style={styles.detailPhoto}
+                  resizeMode="contain"
+                />
+              </View>
+
+
+
+                  <Text style={styles.brandLabel}>
+                    {selectedProduct.brand}
+                  </Text>
+
+                  <Text style={styles.detailTitle}>
+                    {selectedProduct.name}
+                  </Text>
+
+                  <Text style={styles.productPrice}>
+                    {formatRupiah(selectedProduct.price)}
+                  </Text>
+
+                  <Text style={styles.detailDescription}>
+                    {selectedProduct.description}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => {
+                      addToCart(selectedProduct);
+                      setSelectedProduct(null);
+
+                      Alert.alert(
+                        "Berhasil",
+                        "Produk ditambahkan ke keranjang."
+                      );
+                    }}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      Tambahkan ke Keranjang
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* ===================================
+            MODAL CHECKOUT
+        =================================== */}
+
+        <Modal
+          visible={checkoutVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setCheckoutVisible(false)}
+        >
+          <View style={styles.modalBackground}>
+            <View style={styles.checkoutCard}>
+              <View style={styles.checkoutHeader}>
+                <Text style={styles.checkoutTitle}>
+                  Checkout Pesanan
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => setCheckoutVisible(false)}
+                >
                   <Ionicons
-                    name="image-outline"
-                    size={65}
-                    color="#A5A0B8"
+                    name="close"
+                    size={25}
+                    color="#333333"
                   />
-                  <Text style={styles.imageLabel}>Foto Produk</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.inputLabel}>
+                  Nama Pemesan
+                </Text>
+
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Masukkan nama lengkap"
+                  value={customerName}
+                  onChangeText={setCustomerName}
+                />
+
+                <Text style={styles.inputLabel}>
+                  Nomor WhatsApp
+                </Text>
+
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Contoh: 08xxxxxxxxxx"
+                  keyboardType="phone-pad"
+                  value={customerPhone}
+                  onChangeText={setCustomerPhone}
+                />
+
+                <Text style={styles.inputLabel}>
+                  Alamat Pengiriman
+                </Text>
+
+                <TextInput
+                  style={[
+                    styles.formInput,
+                    styles.addressInput,
+                  ]}
+                  placeholder="Masukkan alamat lengkap"
+                  multiline
+                  value={customerAddress}
+                  onChangeText={setCustomerAddress}
+                />
+
+                <Text style={styles.inputLabel}>
+                  Catatan Pesanan (Opsional)
+                </Text>
+
+                <TextInput
+                  style={[
+                    styles.formInput,
+                    styles.addressInput,
+                  ]}
+                  placeholder="Tambahkan catatan jika diperlukan"
+                  multiline
+                  value={customerNote}
+                  onChangeText={setCustomerNote}
+                />
+
+                {/* RINGKASAN CHECKOUT */}
+
+                <View style={styles.checkoutTotal}>
+                  <Text>Total Pembayaran</Text>
+
+                  <Text style={styles.totalPrice}>
+                    {formatRupiah(totalPrice)}
+                  </Text>
                 </View>
 
-                <Text style={styles.brandLabel}>
-                  {selectedProduct.brand}
+                <Text style={styles.checkoutHint}>
+                  Pesanan dikirim melalui WhatsApp sesuai mitra produk.
                 </Text>
 
-                <Text style={styles.detailTitle}>
-                  {selectedProduct.name}
-                </Text>
+                {/* TOMBOL WHATSAPP KARANG EMAS */}
 
-                <Text style={styles.productPrice}>
-                  {formatRupiah(selectedProduct.price)}
-                </Text>
+                {groupedOrders["Karang Emas"].length > 0 && (
+                  <TouchableOpacity
+                    style={styles.whatsappButton}
+                    onPress={() =>
+                      sendWhatsAppOrder("Karang Emas")
+                    }
+                  >
+                    <Ionicons
+                      name="logo-whatsapp"
+                      size={20}
+                      color="#FFFFFF"
+                    />
 
-                <Text style={styles.detailDescription}>
-                  {selectedProduct.description}
-                </Text>
+                    <Text style={styles.whatsappText}>
+                      {openedBrands["Karang Emas"]
+                        ? "WhatsApp Karang Emas Dibuka"
+                        : "Pesan ke Karang Emas"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* TOMBOL WHATSAPP SUBUR JAYA */}
+
+                {groupedOrders["Subur Jaya Santan"].length > 0 && (
+                  <TouchableOpacity
+                    style={styles.whatsappButton}
+                    onPress={() =>
+                      sendWhatsAppOrder("Subur Jaya Santan")
+                    }
+                  >
+                    <Ionicons
+                      name="logo-whatsapp"
+                      size={20}
+                      color="#FFFFFF"
+                    />
+
+                    <Text style={styles.whatsappText}>
+                      {openedBrands["Subur Jaya Santan"]
+                        ? "WhatsApp Subur Jaya Dibuka"
+                        : "Pesan ke Subur Jaya Santan"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* SELESAIKAN PESANAN */}
 
                 <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={() => {
-                    addToCart(selectedProduct);
-                    setSelectedProduct(null);
-                    Alert.alert(
-                      "Berhasil",
-                      "Produk ditambahkan ke keranjang."
-                    );
-                  }}
+                  style={[
+                    styles.finishButton,
+                    !activeOrderBrands.every(
+                      (brand) => openedBrands[brand]
+                    ) && styles.finishButtonDisabled,
+                  ]}
+                  onPress={finishOrder}
+                  disabled={
+                    !activeOrderBrands.every(
+                      (brand) => openedBrands[brand]
+                    )
+                  }
                 >
-                  <Text style={styles.primaryButtonText}>
-                    Tambahkan ke Keranjang
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+
+                  <Text style={styles.whatsappText}>
+                    Saya Sudah Mengirim Pesanan
                   </Text>
                 </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
 
-      {/* MODAL CHECKOUT */}
+                <Text style={styles.finishHint}>
+                  Setelah mengirim semua pesanan melalui WhatsApp,
+                  tekan tombol di atas untuk mengosongkan keranjang.
+                </Text>
 
-      <Modal
-        visible={checkoutVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCheckoutVisible(false)}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.checkoutCard}>
-            <View style={styles.checkoutHeader}>
-              <Text style={styles.checkoutTitle}>
-                Checkout Pesanan
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => setCheckoutVisible(false)}
-              >
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
+                <View style={{ height: 20 }} />
+              </ScrollView>
             </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Nama Lengkap *</Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="Masukkan nama Anda"
-                value={customerName}
-                onChangeText={setCustomerName}
-              />
-
-              <Text style={styles.inputLabel}>Nomor Telepon *</Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="Contoh: 081234567890"
-                keyboardType="phone-pad"
-                value={customerPhone}
-                onChangeText={setCustomerPhone}
-              />
-
-              <Text style={styles.inputLabel}>Alamat Lengkap *</Text>
-              <TextInput
-                style={[styles.formInput, styles.addressInput]}
-                placeholder="Masukkan alamat pengiriman"
-                multiline
-                value={customerAddress}
-                onChangeText={setCustomerAddress}
-              />
-
-              <Text style={styles.inputLabel}>Catatan Pesanan</Text>
-              <TextInput
-                style={[styles.formInput, styles.addressInput]}
-                placeholder="Catatan tambahan (opsional)"
-                multiline
-                value={customerNote}
-                onChangeText={setCustomerNote}
-              />
-
-              <Text style={styles.checkoutTotal}>
-                Total Keranjang: {formatRupiah(totalPrice)}
-              </Text>
-
-              <Text style={styles.checkoutHint}>
-                Pesanan akan dikirim ke WhatsApp masing-masing toko.
-              </Text>
-
-              {groupedOrders["Karang Emas"].length > 0 && (
-                <TouchableOpacity
-                  style={styles.whatsappButton}
-                  onPress={() => sendWhatsAppOrder("Karang Emas")}
-                >
-                  <Ionicons name="logo-whatsapp" size={22} color="#FFFFFF" />
-                  <Text style={styles.whatsappText}>
-                    Pesan ke Karang Emas
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {groupedOrders["Subur Jaya Santan"].length > 0 && (
-                <TouchableOpacity
-                  style={styles.whatsappButton}
-                  onPress={() => sendWhatsAppOrder("Subur Jaya Santan")}
-                >
-                  <Ionicons name="logo-whatsapp" size={22} color="#FFFFFF" />
-                  <Text style={styles.whatsappText}>
-                    Pesan ke Subur Jaya Santan
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
 // ===================================
-// 14. STYLE APLIKASI
+// 16. STYLE / DESAIN APLIKASI
 // ===================================
 
 const styles = StyleSheet.create({
@@ -874,481 +1296,721 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8F7FC",
   },
+
   topHeader: {
     backgroundColor: "#7561C9",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 22,
+    paddingVertical: 17,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+
   headerSmall: {
     color: "#E7E1FF",
     fontSize: 10,
+    letterSpacing: 1.5,
     fontWeight: "600",
   },
+
   headerTitle: {
     color: "#FFFFFF",
-    fontSize: 17,
+    fontSize: 23,
     fontWeight: "bold",
     marginTop: 3,
   },
+
   headerCart: {
-    position: "relative",
-    padding: 5,
+    width: 45,
+    height: 45,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    justifyContent: "center",
+    alignItems: "center",
   },
+
   cartBadge: {
     position: "absolute",
-    right: -5,
     top: -5,
-    backgroundColor: "#F15D78",
-    borderRadius: 12,
+    right: -5,
     minWidth: 19,
     height: 19,
-    alignItems: "center",
+    borderRadius: 10,
+    backgroundColor: "#F15B78",
     justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
   },
+
   cartBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "bold",
   },
+
   content: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
   },
+
+  homeContent: {
+    padding: 17,
+    paddingBottom: 25,
+  },
+
+  pageContent: {
+    padding: 17,
+    paddingBottom: 25,
+  },
+
   banner: {
+    minHeight: 215,
+    borderRadius: 22,
     padding: 22,
-    borderRadius: 18,
-    marginBottom: 22,
+    overflow: "hidden",
+    justifyContent: "center",
   },
+
+  bannerContent: {
+    width: "78%",
+    zIndex: 1,
+  },
+
   bannerSmall: {
-    color: "#E9E3FF",
-    fontSize: 11,
+    color: "#E8E2FF",
+    fontSize: 10,
     fontWeight: "bold",
+    letterSpacing: 1.5,
   },
+
   bannerTitle: {
     color: "#FFFFFF",
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    marginTop: 8,
+    marginTop: 7,
   },
+
   bannerDescription: {
-    color: "#F2EEFF",
-    fontSize: 13,
+    color: "#F1EDFF",
+    fontSize: 12,
+    lineHeight: 19,
     marginTop: 9,
-    lineHeight: 20,
   },
+
   bannerButton: {
     backgroundColor: "#FFFFFF",
-    alignSelf: "flex-start",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 11,
     borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
     marginTop: 17,
+    gap: 8,
   },
+
   bannerButtonText: {
-    color: "#7561C9",
+    color: "#6652B5",
+    fontSize: 12,
     fontWeight: "bold",
   },
+
+  bannerDecoration: {
+    position: "absolute",
+    right: 15,
+    bottom: 28,
+  },
+
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-    marginTop: 4,
+    marginTop: 25,
+    marginBottom: 14,
   },
+
   sectionTitle: {
     fontSize: 18,
+    color: "#29243A",
     fontWeight: "bold",
-    color: "#302A43",
   },
+
+  sectionSubtitle: {
+    fontSize: 12,
+    color: "#918BA3",
+    marginTop: 4,
+  },
+
   seeAll: {
     color: "#7561C9",
-    fontWeight: "600",
+    fontWeight: "bold",
+    fontSize: 12,
   },
+
   shopContainer: {
     flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
-    marginBottom: 22,
   },
+
   shopCard: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 17,
+    padding: 12,
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ECE8F7",
+    borderColor: "#EEEAF7",
   },
+
+  logoContainer: {
+    width: "100%",
+    height: 100,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  mitraLogo: {
+    width: "100%",
+    height: "100%",
+  },
+
   shopTitle: {
+    color: "#302A42",
+    fontSize: 14,
     fontWeight: "bold",
-    fontSize: 13,
-    color: "#302A43",
-    marginTop: 9,
+    textAlign: "center",
   },
+
   shopSubtitle: {
     fontSize: 11,
-    color: "#898397",
+    color: "#918BA3",
     marginTop: 4,
   },
+
+  shopLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 12,
+  },
+
+  shopLinkText: {
+    color: "#7561C9",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+
   productGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    rowGap: 14,
     paddingBottom: 20,
   },
+
   productCard: {
-    width: "48%",
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 10,
-    marginBottom: 14,
+    borderRadius: 16,
+    padding: 11,
     borderWidth: 1,
     borderColor: "#EEEAF5",
   },
+
+
+
   productImage: {
-    height: 115,
-    backgroundColor: "#F0EDFA",
-    borderRadius: 10,
-    alignItems: "center",
+    width: "100%",
+    height: 145,
+    backgroundColor: "#F8F7FC",
+    borderRadius: 14,
     justifyContent: "center",
+    alignItems: "center",
+    padding: 10,
+    marginBottom: 12,
+    overflow: "hidden",
   },
+
+  productPhoto: {
+    width: "100%",
+    height: "100%",
+  },
+
   imageLabel: {
     color: "#A5A0B8",
     fontSize: 10,
-    marginTop: 4,
-  },
-  brandLabel: {
-    fontSize: 10,
-    color: "#8878CB",
-    fontWeight: "600",
-    marginTop: 10,
-  },
-  productName: {
-    fontSize: 13,
-    color: "#302A43",
-    fontWeight: "600",
     marginTop: 5,
-    minHeight: 34,
   },
+
+  brandLabel: {
+    color: "#7561C9",
+    fontSize: 10,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+
+  productName: {
+    color: "#302A42",
+    fontSize: 13,
+    fontWeight: "bold",
+    minHeight: 36,
+  },
+
   productPrice: {
     color: "#7561C9",
     fontSize: 14,
     fontWeight: "bold",
     marginTop: 7,
   },
+
   addButton: {
     backgroundColor: "#7561C9",
-    borderRadius: 8,
-    padding: 9,
-    marginTop: 10,
+    borderRadius: 9,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: 9,
+    marginTop: 12,
     gap: 5,
   },
+
   addButtonText: {
     color: "#FFFFFF",
-    fontWeight: "600",
     fontSize: 11,
-  },
-  pageTitle: {
-    fontSize: 22,
     fontWeight: "bold",
-    color: "#302A43",
-    marginBottom: 16,
   },
-  searchInput: {
+
+  pageHeading: {
+    marginBottom: 18,
+  },
+
+  pageTitle: {
+    fontSize: 23,
+    fontWeight: "bold",
+    color: "#302A42",
+    marginBottom: 5,
+  },
+
+  
+  searchWrapper: {
+    height: 48,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E8E3F2",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 14,
+    borderColor: "#EAE6F2",
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
+
+  searchInput: {
+    flex: 1,
+    height: 48,
+    fontSize: 13,
+    color: "#302A42",
+    paddingVertical: 0,
+  },
+
   filterContainer: {
-    marginVertical: 15,
+    marginTop: 17,
+    maxHeight: 43,
   },
+
   filterButton: {
-    borderWidth: 1,
-    borderColor: "#DDD7EB",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#EAE6F2",
   },
+
   filterActive: {
     backgroundColor: "#7561C9",
     borderColor: "#7561C9",
   },
+
   filterText: {
     color: "#7561C9",
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: "600",
   },
+
   filterTextActive: {
     color: "#FFFFFF",
-    fontWeight: "bold",
   },
-  emptyText: {
-    color: "#898397",
-    textAlign: "center",
-    marginTop: 20,
+
+  resultText: {
+    color: "#918BA3",
+    fontSize: 11,
+    marginTop: 16,
+    marginBottom: 13,
   },
+
   emptyCart: {
     alignItems: "center",
-    paddingTop: 65,
+    justifyContent: "center",
+    paddingHorizontal: 25,
+    paddingVertical: 55,
   },
+
   emptyTitle: {
     fontSize: 17,
-    color: "#302A43",
     fontWeight: "bold",
+    color: "#302A42",
     marginTop: 15,
+    textAlign: "center",
   },
+
+  emptyText: {
+    color: "#918BA3",
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 19,
+    marginTop: 8,
+    marginBottom: 18,
+  },
+
   primaryButton: {
     backgroundColor: "#7561C9",
     borderRadius: 11,
-    padding: 14,
-    alignItems: "center",
-    marginTop: 18,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  cartCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 13,
-    padding: 12,
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  cartImage: {
-    width: 65,
-    height: 65,
-    backgroundColor: "#F0EDFA",
-    borderRadius: 10,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 12,
   },
+
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+
+  cartCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 15,
+    padding: 12,
+    marginTop: 13,
+    flexDirection: "row",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#EEEAF5",
+  },
+
+
+  cartImage: {
+    width: 95,
+    height: 100,
+    backgroundColor: "#F8F7FC",
+    borderRadius: 13,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 7,
+    overflow: "hidden",
+  },
+
+  cartPhoto: {
+    width: "100%",
+    height: "100%",
+  },
+
   cartInfo: {
     flex: 1,
+    justifyContent: "center",
   },
+
   cartName: {
+    color: "#302A42",
+    fontWeight: "bold",
     fontSize: 13,
-    color: "#302A43",
-    fontWeight: "600",
-    marginTop: 4,
   },
+
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 13,
-    marginTop: 9,
+    marginTop: 10,
+    gap: 12,
   },
+
   quantityButton: {
-    width: 27,
-    height: 27,
-    backgroundColor: "#F0EDFA",
-    borderRadius: 8,
-    alignItems: "center",
+    width: 29,
+    height: 29,
+    borderRadius: 9,
+    backgroundColor: "#F1EFF8",
     justifyContent: "center",
+    alignItems: "center",
   },
+
   quantityText: {
+    color: "#302A42",
+    fontSize: 13,
     fontWeight: "bold",
-    color: "#302A43",
   },
+
   summaryCard: {
     backgroundColor: "#FFFFFF",
-    padding: 17,
-    borderRadius: 14,
-    marginTop: 8,
-    marginBottom: 25,
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#EEEAF5",
   },
+
   summaryTitle: {
+    color: "#302A42",
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 15,
-    color: "#302A43",
   },
+
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 13,
   },
+
   totalPrice: {
     color: "#7561C9",
+    fontSize: 16,
     fontWeight: "bold",
   },
+
+  aboutContainer: {
+    alignItems: "center",
+    paddingTop: 40,
+  },
+
+  aboutLogo: {
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    backgroundColor: "#EEEAFB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  aboutTitle: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#7561C9",
+    marginTop: 18,
+  },
+
+  aboutDescription: {
+    color: "#777187",
+    fontSize: 13,
+    lineHeight: 22,
+    textAlign: "center",
+    marginTop: 12,
+    paddingHorizontal: 15,
+  },
+
+  aboutInfo: {
+    backgroundColor: "#FFFFFF",
+    width: "100%",
+    borderRadius: 15,
+    padding: 18,
+    marginTop: 28,
+    borderWidth: 1,
+    borderColor: "#EEEAF5",
+  },
+
+  aboutInfoTitle: {
+    color: "#302A42",
+    fontSize: 15,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+
+  aboutInfoText: {
+    color: "#777187",
+    fontSize: 12,
+    marginTop: 8,
+  },
+
   bottomNav: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
     paddingVertical: 10,
+    paddingBottom: 8,
     borderTopWidth: 1,
     borderTopColor: "#EEEAF5",
+    justifyContent: "space-around",
   },
+
   navItem: {
     flex: 1,
     alignItems: "center",
     gap: 4,
   },
+
   navText: {
-    fontSize: 10,
     color: "#9993A8",
+    fontSize: 10,
   },
+
   navTextActive: {
     color: "#7561C9",
     fontWeight: "bold",
   },
+
   modalBackground: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(25,20,45,0.55)",
     justifyContent: "center",
+    alignItems: "center",
     padding: 18,
   },
+
   modalCard: {
+    width: "100%",
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 22,
+    padding: 22,
   },
+
   closeButton: {
     alignSelf: "flex-end",
     padding: 5,
   },
-  detailImage: {
-    height: 170,
-    backgroundColor: "#F0EDFA",
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
+
+detailImage: {
+  height: 230,
+  backgroundColor: "#F8F7FC",
+  borderRadius: 16,
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 15,
+  marginBottom: 17,
+  overflow: "hidden",
+},
+
+detailPhoto: {
+  width: "100%",
+  height: "100%",
+},
+
   detailTitle: {
+    color: "#302A42",
     fontSize: 21,
-    color: "#302A43",
     fontWeight: "bold",
-    marginTop: 8,
+    marginTop: 5,
   },
+
   detailDescription: {
-    color: "#777184",
+    color: "#777187",
     fontSize: 13,
-    lineHeight: 20,
-    marginTop: 12,
+    lineHeight: 21,
+    marginTop: 13,
   },
+
   checkoutCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 20,
+    width: "100%",
     maxHeight: "90%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
   },
+
   checkoutHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 18,
   },
+
   checkoutTitle: {
-    fontSize: 20,
-    color: "#302A43",
+    color: "#302A42",
+    fontSize: 19,
     fontWeight: "bold",
   },
+
   inputLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#302A43",
+    color: "#302A42",
+    fontSize: 12,
+    fontWeight: "bold",
     marginBottom: 7,
     marginTop: 12,
   },
+
   formInput: {
     backgroundColor: "#F8F7FC",
     borderWidth: 1,
-    borderColor: "#E8E3F2",
+    borderColor: "#EAE6F2",
     borderRadius: 10,
-    padding: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
     fontSize: 13,
+    color: "#302A42",
   },
+
   addressInput: {
     minHeight: 75,
     textAlignVertical: "top",
   },
+
   checkoutTotal: {
-    color: "#7561C9",
-    fontSize: 16,
-    fontWeight: "bold",
+    backgroundColor: "#F4F1FF",
+    borderRadius: 12,
+    padding: 15,
     marginTop: 20,
-  },
-  checkoutHint: {
-    fontSize: 12,
-    color: "#898397",
-    marginTop: 8,
-    lineHeight: 18,
-  },
-  whatsappButton: {
-    backgroundColor: "#20B965",
-    borderRadius: 10,
-    padding: 14,
-    marginTop: 13,
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 9,
   },
+
+  checkoutHint: {
+    color: "#918BA3",
+    fontSize: 11,
+    lineHeight: 18,
+    marginTop: 13,
+    marginBottom: 8,
+  },
+
+  whatsappButton: {
+    backgroundColor: "#25A75A",
+    borderRadius: 11,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    marginTop: 12,
+  },
+
   whatsappText: {
     color: "#FFFFFF",
+    fontSize: 12,
     fontWeight: "bold",
   },
-  aboutContainer: {
-    alignItems: "center",
-    paddingTop: 40,
-  },
-  aboutLogo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#EEEAFB",
+
+  finishButton: {
+    backgroundColor: "#7561C9",
+    borderRadius: 11,
+    paddingVertical: 14,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-  },
-  aboutTitle: {
-    fontSize: 22,
-    color: "#302A43",
-    fontWeight: "bold",
-    textAlign: "center",
-    marginTop: 18,
-  },
-  aboutDescription: {
-    color: "#898397",
-    textAlign: "center",
-    lineHeight: 21,
-    marginTop: 12,
-    paddingHorizontal: 15,
-  },
-  aboutInfo: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 18,
-    width: "100%",
-    marginTop: 25,
-  },
-  aboutInfoTitle: {
-    color: "#302A43",
-    fontWeight: "bold",
-    fontSize: 15,
-    marginBottom: 12,
-  },
-  aboutInfoText: {
-    color: "#777184",
-    fontSize: 13,
-    marginBottom: 8,
+    gap: 8,
+    marginTop: 17,
   },
 
-  mitraLogo: {
-    width: "100%",
-    height: 115,
-    marginBottom: 8,
+  finishButtonDisabled: {
+    backgroundColor: "#B9B2D2",
   },
 
+  finishHint: {
+    color: "#918BA3",
+    fontSize: 10,
+    lineHeight: 17,
+    textAlign: "center",
+    marginTop: 10,
+  },
 });
